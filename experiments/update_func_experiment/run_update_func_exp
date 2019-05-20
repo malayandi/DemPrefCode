@@ -1,0 +1,4 @@
+#!/bin/bash
+
+python update_func_experiment.py driver
+python update_func_experiment.py lander

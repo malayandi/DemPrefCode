@@ -1,0 +1,89 @@
+import sys
+sys.path.insert(0,'../..')
+
+import pickle
+import typing
+
+import numpy as np
+
+import domain
+import runner
+
+HUMAN_TYPE = "opt"
+
+N_DEMOS = 0
+GEN_DEMOS = False
+SIM_ITER_COUNT = 100
+DEMOS = []
+QUERY_LENGTH = 10
+N_PREF_ITERS = 25
+N_ITERS_EXP = 8
+
+INC_PREV_QUERY = False
+EPSILON = 0
+N_SAMPLES_SUMM = 50000
+N_SAMPLES_EXP = N_SAMPLES_SUMM
+
+BETA_DEMO = 0.1
+BETA_PREF = 5
+BETA_HUMAN = 1
+
+
+def update_func_approximation(n_queries: typing.List, dom: domain.Domain, true_weight: typing.List, name: str):
+    """
+    Runs a full factorial experiment on {n_query} and {pick_best, PL} in simulation. Saves the data to a
+    file locally.
+
+    :param n_queries: a list containing the number of queries to run the factorial experiment with.
+    :param domain: the domain on which to run the experiment.
+    :param true_weight: reward weight vector for the simulated agent to optimize.
+    :param name: name of domain, as a string.
+    """
+    if isinstance(dom, domain.Car):
+        trim_start = 15
+        gen_scenario = True
+    else:
+        trim_start = 0
+        gen_scenario = False
+
+    ### STANDARD RUNNER CALL
+    errors = []
+    for n_query in n_queries:
+        for update_func in ["rank", "pick_best"]:
+            print("\n===")
+            print(f"n_query = {n_query}, update_func = {update_func}")
+            print("===\n")
+            r = runner.Runner(dom, HUMAN_TYPE,
+                              N_DEMOS, GEN_DEMOS, SIM_ITER_COUNT, DEMOS, trim_start,
+                              n_query, update_func, QUERY_LENGTH, INC_PREV_QUERY, gen_scenario, N_PREF_ITERS, EPSILON,
+                              N_SAMPLES_SUMM, N_SAMPLES_EXP,
+                              true_weight, BETA_DEMO, BETA_PREF, BETA_HUMAN)
+            n = f"results/domain={name},n_query={n_query},update_func={update_func}"
+            try:
+                df, config = r.run(n_iters=N_ITERS_EXP)
+            except:
+                errors.append(n)
+
+            with open(n + "_db.pickle", 'wb') as f:
+                pickle.dump(df, f)
+            with open(n + "_config.pickle", 'wb') as f:
+                pickle.dump(config, f)
+            if errors:
+                with open(n + "_errors.pickle", 'wb') as f:
+                    pickle.dump(errors, f)
+
+
+if __name__ == "__main__":
+    args = sys.argv
+    D = args[1] # options are "driver", "lander", "fetch_move"
+
+    if D == "driver":
+        DOM = domain.Car(dt=0.1, time_steps=50, num_others=1)
+        TRUE_WEIGHT = [0.5, -0.2, 0.2, -0.7]
+    elif D == "lander":
+        DOM = domain.LunarLander(time_steps=150)
+        TRUE_WEIGHT = [-0.4, 0.4, -0.2, -0.7]
+    else:
+        print(f"No domain named {D}.")
+
+    update_func_approximation([3, 5], DOM, TRUE_WEIGHT, D)

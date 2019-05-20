@@ -1,0 +1,4 @@
+#!/bin/bash
+
+python main_experiment.py driver
+python main_experiment.py lander

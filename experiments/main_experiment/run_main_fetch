@@ -1,0 +1,6 @@
+#!/bin/bash
+
+python generate_demos_fetch.py fetch_move
+python generate_demos_fetch.py fetch_push
+python main_experiment.py fetch_move
+python main_experiment.py fetch_push

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+python iterated_corr_experiment.py driver
+python iterated_corr_experiment.py lander
